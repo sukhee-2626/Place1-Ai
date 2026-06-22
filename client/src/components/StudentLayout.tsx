@@ -112,18 +112,20 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       {/* Sidebar */}
       <aside style={{
         width: sidebarOpen ? 250 : 68,
-        background: 'var(--bg-secondary)',
-        borderRight: '1px solid var(--border)',
+        background: 'rgba(9, 9, 11, 0.65)',
+        backdropFilter: 'blur(30px)',
+        WebkitBackdropFilter: 'blur(30px)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.02)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         overflow: 'hidden',
         position: 'fixed',
         top: 0, left: 0, bottom: 0,
         zIndex: 100
       }}>
         {/* Logo / Header */}
-        <div style={{ padding: '16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '16px 14px', borderBottom: '1px solid rgba(255, 255, 255, 0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
             <div style={{ 
               width: 28, height: 28, 
@@ -133,7 +135,20 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             }}>
               NP
             </div>
-            {sidebarOpen && <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.03em' }}>NeoPAT AI</span>}
+            {sidebarOpen && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.03em' }}>NeoPAT AI</span>
+                <span style={{ display: 'flex', height: 6, width: 6, position: 'relative' }}>
+                  <span style={{ animation: 'logo-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite', position: 'absolute', display: 'inline-flex', height: '100%', width: '100%', borderRadius: '50%', backgroundColor: 'var(--accent-cyan-light)', opacity: 0.75 }}></span>
+                  <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', height: 6, width: 6, backgroundColor: 'var(--accent-cyan)' }}></span>
+                </span>
+                <style>{`
+                  @keyframes logo-ping {
+                    75%, 100% { transform: scale(2.5); opacity: 0; }
+                  }
+                `}</style>
+              </div>
+            )}
           </div>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 
@@ -248,9 +263,11 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       }}>
         {/* Header Navigation */}
         <header style={{ 
-          background: 'var(--bg-secondary)', 
-          borderBottom: '1px solid var(--border)', 
-          padding: '12px 24px', 
+          background: 'rgba(5, 5, 7, 0.4)', 
+          backdropFilter: 'blur(30px)',
+          WebkitBackdropFilter: 'blur(30px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.02)', 
+          padding: '14px 24px', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between', 
@@ -259,7 +276,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           zIndex: 50 
         }}>
           <div>
-            <h2 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <h2 style={{ fontSize: 14, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-violet-light) 0%, var(--accent-cyan-light) 100%)' }} />
               {navItems.find(n => n.href === pathname)?.label || 
                navItems.flatMap(n => n.children || []).find(c => c.href === pathname)?.label || 
                'Console'}
@@ -271,20 +289,20 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             {/* Streak */}
             <div style={{ 
               display: 'flex', alignItems: 'center', gap: 6, 
-              background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.15)', 
-              borderRadius: 6, padding: '4px 10px' 
+              background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', 
+              borderRadius: '9999px', padding: '5px 12px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
             }}>
-              <Flame size={14} style={{ color: 'var(--accent-amber-light)' }} fill="var(--accent-amber)" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-amber-light)' }}>{user.streak}d</span>
+              <Flame size={13} style={{ color: 'var(--accent-amber-light)' }} fill="var(--accent-amber)" />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent-amber-light)', letterSpacing: '0.02em' }}>{user.streak}d</span>
             </div>
             {/* XP */}
             <div style={{ 
               display: 'flex', alignItems: 'center', gap: 6, 
-              background: 'rgba(109,40,217,0.06)', border: '1px solid rgba(109,40,217,0.15)', 
-              borderRadius: 6, padding: '4px 10px' 
+              background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', 
+              borderRadius: '9999px', padding: '5px 12px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
             }}>
-              <Zap size={14} style={{ color: 'var(--accent-violet-light)' }} fill="var(--accent-violet)" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-violet-light)' }}>{user.xp} XP</span>
+              <Zap size={13} style={{ color: 'var(--accent-violet-light)' }} fill="var(--accent-violet)" />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--accent-violet-light)', letterSpacing: '0.02em' }}>{user.xp} XP</span>
             </div>
             {/* Profile Avatar icon */}
             <div 
@@ -292,8 +310,12 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
                 width: 28, height: 28, 
                 background: 'linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-pink) 100%)', 
                 borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'white' 
+                fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'white',
+                boxShadow: '0 0 12px rgba(124, 58, 237, 0.3)',
+                transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
               }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
               onClick={() => router.push('/profile')}
             >
               {user.name?.[0]?.toUpperCase() || '?'}
