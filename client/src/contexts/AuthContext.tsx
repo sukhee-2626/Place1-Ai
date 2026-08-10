@@ -161,22 +161,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post('/auth/login', { email, password });
-    const { token: newToken, user: newUser } = res.data;
-    localStorage.setItem('place1_token', newToken);
-    localStorage.setItem('place1_user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-    return { role: newUser.role };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return { role: 'student' }; // Supabase handles the rest in onAuthStateChange
   };
 
   const register = async (data: RegisterData) => {
-    const res = await api.post('/auth/register', data);
-    const { token: newToken, user: newUser } = res.data;
-    localStorage.setItem('place1_token', newToken);
-    localStorage.setItem('place1_user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          full_name: data.name,
+          college: data.college,
+          branch: data.branch,
+        }
+      }
+    });
+    if (error) throw error;
   };
 
   const logout = async () => {

@@ -8,7 +8,7 @@ import { Eye, EyeOff, Key, Terminal, ArrowRight, ShieldCheck } from 'lucide-reac
 export default function LoginPage() {
   const { login, signInWithGoogle } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: 'student@demo.com', password: 'password123' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPwd, setShowPwd] = useState(false);
