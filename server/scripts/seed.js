@@ -411,6 +411,94 @@ const run = async () => {
     const insertRes = await Question.insertMany(allQuestions);
     console.log(`✅ Success! Seeded ${insertRes.length} questions in the database (${dsaData.length} DSA + ${aptitudeQuestions.length} Aptitude).`);
 
+    // Seed jobs
+    console.log('💼 Seeding default jobs...');
+    const Job = require('../models/Job');
+    await Job.deleteMany({});
+    console.log('🧹 Cleared old jobs.');
+    const mockJobsPool = [
+      {
+        title: 'Associate Software Engineer (React)',
+        company: 'Accenture',
+        location: 'Bangalore, India',
+        portal: 'Naukri',
+        type: 'Full-time',
+        salary: '₹6,50,000 - ₹8,50,000 / year',
+        posted: '1 day ago',
+        matchScore: 92,
+        skillsMatched: ['React', 'JavaScript', 'HTML5', 'CSS3', 'Git'],
+        skillsMissing: ['TypeScript'],
+        description: 'We are looking for a passionate Associate Software Engineer to build beautiful, responsive web applications using React.js. You will collaborate with cross-functional teams to design, write, and test high-quality code. Requirements: Solid JavaScript foundation, React lifecycle knowledge, Git version control, and responsive styling. Experience with Next.js is a plus.'
+      },
+      {
+        title: 'Front-End Developer Internship',
+        company: 'Zoho Corporation',
+        location: 'Chennai, India',
+        portal: 'Internshala',
+        type: 'Internship',
+        salary: '₹25,000 / month',
+        posted: 'Just now',
+        matchScore: 85,
+        skillsMatched: ['JavaScript', 'HTML5', 'CSS3', 'Git'],
+        skillsMissing: ['React', 'REST APIs'],
+        description: 'Join Zoho as a Front-End Developer Intern. Work closely with product teams to build clean user interfaces. Requirements: Strong HTML/CSS skill, core vanilla JS concepts, document object manipulation, and attention to visual detail. You will get hands-on training on enterprise cloud modules.'
+      },
+      {
+        title: 'Full Stack Engineer (Node & React)',
+        company: 'Amazon',
+        location: 'Hyderabad, India (Hybrid)',
+        portal: 'LinkedIn',
+        type: 'Full-time',
+        salary: '₹18,0,000 - ₹24,00,000 / year',
+        posted: '3 days ago',
+        matchScore: 78,
+        skillsMatched: ['React', 'JavaScript', 'SQL', 'Git'],
+        skillsMissing: ['Node.js', 'AWS', 'Docker', 'REST APIs'],
+        description: 'Amazon Prime Video team is seeking a Full Stack Software Development Engineer. You will drive UX design and backend API architecture for global streaming modules. Core Tech: React, Node.js, Express, PostgreSQL, AWS Lambda, and DynamoDB.'
+      },
+      {
+        title: 'Software Developer (SQL & C++)',
+        company: 'Infosys',
+        location: 'Pune, India',
+        portal: 'Indeed',
+        type: 'Full-time',
+        salary: '₹4,50,000 - ₹6,0,000 / year',
+        posted: '2 days ago',
+        matchScore: 70,
+        skillsMatched: ['SQL', 'Git'],
+        skillsMissing: ['C++', 'Data Structures', 'Algorithms'],
+        description: 'Infosys is hiring a Software Associate for system modernization projects. Responsibilities: writing database queries, optimizing procedures, and supporting applications built in C++. Candidate should have sound SQL knowledge.'
+      },
+      {
+        title: 'Junior React Developer',
+        company: 'TCS',
+        location: 'Kolkata, India',
+        portal: 'Foundit',
+        type: 'Full-time',
+        salary: '₹3,80,000 - ₹5,00,000 / year',
+        posted: '5 days ago',
+        matchScore: 90,
+        skillsMatched: ['React', 'JavaScript', 'HTML5', 'CSS3'],
+        skillsMissing: ['REST APIs', 'Git'],
+        description: 'We are seeking Junior Developers with expertise in building responsive single-page applications. Essential: React functional components, hooks state management, CSS layouts (Flexbox/Grid), and connecting to backend services.'
+      },
+      {
+        title: 'Full-Stack Developer (MERN)',
+        company: 'Wipro',
+        location: 'Noida, India',
+        portal: 'Naukri',
+        type: 'Full-time',
+        salary: '₹5,50,000 - ₹7,20,000 / year',
+        posted: '4 days ago',
+        matchScore: 75,
+        skillsMatched: ['React', 'JavaScript', 'SQL', 'Git'],
+        skillsMissing: ['Node.js', 'MongoDB', 'Express'],
+        description: 'Looking for MERN stack developers to migrate legacy application systems. Knowledge of database design, state management, API routes, and cloud hosting is required.'
+      }
+    ];
+    const insertJobsRes = await Job.insertMany(mockJobsPool);
+    console.log(`✅ Success! Seeded ${insertJobsRes.length} jobs in the database.`);
+
     mongoose.connection.close();
     console.log('🔌 MongoDB connection closed.');
     process.exit(0);

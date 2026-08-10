@@ -29,7 +29,9 @@ import {
   Layers,
   Bot,
   Video,
-  Send
+  Send,
+  Calendar,
+  ListTodo
 } from 'lucide-react';
 
 const navItems = [
@@ -40,6 +42,7 @@ const navItems = [
   { icon: Bot, label: 'AI Career Assistant', href: '/copilot/assistant' },
   { icon: Video, label: 'AI Interview Prep', href: '/copilot/interview' },
   { icon: Send, label: 'AI Outreach Gen', href: '/copilot/generator' },
+  { icon: Calendar, label: 'My Schedule', href: '/dashboard/schedule' },
   { 
     icon: BookOpen, 
     label: 'Practice Tracks', 

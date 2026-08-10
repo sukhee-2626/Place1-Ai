@@ -174,12 +174,19 @@ export default function AdminQuestionsPage() {
   };
 
   const handleSaveMCQ = async () => {
+    // Client-side validation before sending
+    if (!mcqForm.title.trim()) { alert('Please enter a question title.'); return; }
+    if (!mcqForm.question.trim()) { alert('Please enter the question text.'); return; }
+    if (!mcqForm.topic) { alert('Please select a topic.'); return; }
+    if (!mcqForm.optionA.trim() || !mcqForm.optionB.trim()) { alert('Please fill at least options A and B.'); return; }
+
     try {
+      const resolvedTopic = topicToIdMap[mcqForm.topic] || mcqForm.topic.toLowerCase().replace(/\s+/g, '-') || 'general';
       const body = {
         type: 'mcq',
-        title: mcqForm.title,
-        description: mcqForm.question,
-        topic: topicToIdMap[mcqForm.topic] || mcqForm.topic.toLowerCase(),
+        title: mcqForm.title.trim(),
+        description: mcqForm.question.trim(),
+        topic: resolvedTopic,
         category: mcqForm.category,
         difficulty: mcqForm.difficulty,
         options: [mcqForm.optionA, mcqForm.optionB, mcqForm.optionC, mcqForm.optionD],
@@ -201,31 +208,37 @@ export default function AdminQuestionsPage() {
       setSaved(true);
       fetchQuestions();
       setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
-      console.error('Error saving MCQ question:', err);
-      alert('Failed to save question. Make sure backend is running.');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Unknown error';
+      console.error('Error saving MCQ:', err);
+      alert(`Failed to save question: ${msg}`);
     }
   };
 
   const handleSaveCoding = async () => {
+    // Client-side validation
+    if (!codingForm.title.trim()) { alert('Please enter a problem title.'); return; }
+    if (!codingForm.description.trim()) { alert('Please enter a problem description.'); return; }
+    if (!codingForm.topic) { alert('Please select a topic.'); return; }
+
     try {
+      const resolvedTopic = topicToIdMap[codingForm.topic] || codingForm.topic.toLowerCase().replace(/\s+/g, '-') || 'general';
       const body = {
         type: 'coding',
-        title: codingForm.title,
-        description: codingForm.description,
-        topic: topicToIdMap[codingForm.topic] || codingForm.topic.toLowerCase(),
+        title: codingForm.title.trim(),
+        description: codingForm.description.trim(),
+        topic: resolvedTopic,
         category: codingForm.category,
         difficulty: codingForm.difficulty,
         starterCode: {
-          python: codingForm.starterPython,
-          java: codingForm.starterJava,
-          cpp: codingForm.starterCpp
+          python: codingForm.starterPython || 'def solution():\n    pass',
+          java: codingForm.starterJava || 'class Solution {\n    public void solution() {}\n}',
+          cpp: codingForm.starterCpp || 'class Solution {\npublic:\n    void solution() {}\n};',
+          javascript: 'function solution() {\n    // write here\n}'
         },
-        testCases: codingForm.testCases.map(tc => ({
-          input: tc.input,
-          expectedOutput: tc.expected,
-          isHidden: false
-        })),
+        testCases: codingForm.testCases
+          .filter(tc => tc.input.trim() || tc.expected.trim())
+          .map(tc => ({ input: tc.input, expectedOutput: tc.expected, isHidden: false })),
         constraints: codingForm.constraints,
         companies: codingForm.companies,
         xpReward: codingForm.xpReward
@@ -243,9 +256,10 @@ export default function AdminQuestionsPage() {
       setSaved(true);
       fetchQuestions();
       setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Unknown error';
       console.error('Error saving coding problem:', err);
-      alert('Failed to save question. Make sure backend is running.');
+      alert(`Failed to save problem: ${msg}`);
     }
   };
 
@@ -267,57 +281,80 @@ export default function AdminQuestionsPage() {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
+      let importedCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
+
       try {
         const text = e.target?.result as string;
         const lines = text.split('\n');
-        let importedCount = 0;
 
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
-          
+
           const parts = line.split(',').map(p => p.trim().replace(/^"|"$/g, ''));
           if (parts.length < 3) continue;
 
           const [title, question, optionA, optionB, optionC, optionD, correctAnswer, explanation, difficulty, topic, category] = parts;
-          
-          if (!title || !question || !category) continue;
 
-          const isMcq = optionA || optionB || optionC || optionD;
+          // Skip rows missing required fields
+          if (!title?.trim() || !question?.trim()) { failedCount++; continue; }
+
+          const rawCategory = (category?.toLowerCase().trim() || 'aptitude');
+          const validCategories = ['aptitude', 'dsa', 'communication', 'hr', 'sql'];
+          const safeCategory = validCategories.includes(rawCategory) ? rawCategory : 'aptitude';
+
+          const rawTopic = (topicToIdMap[topic?.trim()] || topic?.toLowerCase().replace(/\s+/g, '-') || 'general').trim();
+          const safeTopic = rawTopic || 'general';
+
+          const validDifficulties = ['easy', 'medium', 'hard'];
+          const safeDifficulty = validDifficulties.includes(difficulty?.toLowerCase()) ? difficulty.toLowerCase() : 'easy';
+
+          const isMcq = !!(optionA || optionB);
           const body: any = {
-            title,
-            description: question,
-            difficulty: difficulty?.toLowerCase() || 'easy',
-            topic: topicToIdMap[topic] || topic?.toLowerCase() || 'general',
-            category: category?.toLowerCase() || 'aptitude',
+            title: title.trim(),
+            description: question.trim(),
+            difficulty: safeDifficulty,
+            topic: safeTopic,
+            category: safeCategory,
             type: isMcq ? 'mcq' : 'coding',
             xpReward: isMcq ? 10 : 30
           };
 
           if (isMcq) {
             body.options = [optionA || '', optionB || '', optionC || '', optionD || ''];
-            body.correctAnswer = ['A', 'B', 'C', 'D'].indexOf(correctAnswer || 'A');
+            body.correctAnswer = Math.max(0, ['A', 'B', 'C', 'D'].indexOf(correctAnswer?.toUpperCase() || 'A'));
             body.explanation = explanation || '';
           } else {
             body.starterCode = {
               python: 'def solution():\n    pass',
-              javascript: 'function solution() {\n}',
-              cpp: 'void solution() {\n}',
-              java: 'class Solution {\n}'
+              javascript: 'function solution() {\n    // write here\n}',
+              cpp: 'class Solution {\npublic:\n    void solution() {}\n};',
+              java: 'class Solution {\n    public void solution() {}\n}'
             };
             body.testCases = [{ input: 'Sample Input', expectedOutput: 'Sample Output', isHidden: false }];
           }
 
-          await api.post('/questions', body);
-          importedCount++;
+          try {
+            await api.post('/questions', body);
+            importedCount++;
+          } catch (rowErr: any) {
+            failedCount++;
+            const rowMsg = rowErr?.response?.data?.message || rowErr?.message || 'unknown';
+            errors.push(`Row ${i + 1} ("${title}"): ${rowMsg}`);
+          }
         }
 
-        alert(`Successfully imported ${importedCount} questions!`);
+        let msg = `✅ Imported ${importedCount} questions successfully.`;
+        if (failedCount > 0) msg += `\n⚠️ ${failedCount} rows failed.`;
+        if (errors.length > 0) msg += `\n\nErrors:\n${errors.slice(0, 5).join('\n')}`;
+        alert(msg);
         fetchQuestions();
         setShowForm(false);
       } catch (err: any) {
         console.error('Error importing CSV:', err);
-        alert('Failed to parse CSV. Please check formatting.');
+        alert('Failed to read CSV file. Please check the file format.');
       }
     };
     reader.readAsText(file);

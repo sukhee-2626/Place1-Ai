@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 import { 
   Layers, 
   Plus, 
@@ -95,14 +96,31 @@ export default function SmartApplicationTrackerPage() {
   const [formNotes, setFormNotes] = useState('');
   const [formInterviewDate, setFormInterviewDate] = useState('');
 
-  useEffect(() => {
-    const data = localStorage.getItem('neopat_tracker_jobs');
-    if (data) {
-      setItems(JSON.parse(data));
-    } else {
-      setItems(defaultTrackerData);
-      localStorage.setItem('neopat_tracker_jobs', JSON.stringify(defaultTrackerData));
+  const fetchTrackerData = async () => {
+    try {
+      const response = await api.get('/copilot/tracker');
+      if (response.data.success) {
+        const normalized = response.data.trackerJobs.map((item: any) => ({
+          id: item._id,
+          title: item.title,
+          company: item.company,
+          location: item.location || 'Remote',
+          salary: item.salary || 'Not specified',
+          portal: item.portal || 'LinkedIn',
+          status: item.status,
+          dateAdded: item.dateAdded ? new Date(item.dateAdded).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          notes: item.notes,
+          interviewDate: item.interviewDate
+        }));
+        setItems(normalized);
+      }
+    } catch (err) {
+      console.error('Error fetching tracker data:', err);
     }
+  };
+
+  useEffect(() => {
+    fetchTrackerData();
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -110,61 +128,70 @@ export default function SmartApplicationTrackerPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const saveToStorage = (updatedList: TrackedItem[]) => {
-    setItems(updatedList);
-    localStorage.setItem('neopat_tracker_jobs', JSON.stringify(updatedList));
-  };
-
   // Move card status
-  const moveStatus = (id: string, newStatus: 'applied' | 'shortlisted' | 'interview' | 'offer') => {
-    const updated = items.map(item => {
-      if (item.id === id) {
-        return { ...item, status: newStatus };
+  const moveStatus = async (id: string, newStatus: 'applied' | 'shortlisted' | 'interview' | 'offer') => {
+    try {
+      const response = await api.put(`/copilot/tracker/${id}`, { status: newStatus });
+      if (response.data.success) {
+        setItems(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+        triggerToast(`Moved to ${newStatus.toUpperCase()}`);
       }
-      return item;
-    });
-    saveToStorage(updated);
-    triggerToast(`Moved to ${newStatus.toUpperCase()}`);
+    } catch (err) {
+      console.error('Failed to move status:', err);
+      triggerToast('Failed to update status');
+    }
   };
 
   // Delete card
-  const deleteItem = (id: string) => {
+  const deleteItem = async (id: string) => {
     if (!window.confirm('Delete this tracked application?')) return;
-    const updated = items.filter(item => item.id !== id);
-    saveToStorage(updated);
-    triggerToast('Application removed');
+    try {
+      const response = await api.delete(`/copilot/tracker/${id}`);
+      if (response.data.success) {
+        setItems(prev => prev.filter(item => item.id !== id));
+        triggerToast('Application removed');
+      }
+    } catch (err) {
+      console.error('Failed to delete application:', err);
+      triggerToast('Failed to delete application');
+    }
   };
 
   // Save new custom card
-  const handleCreateCard = (e: React.FormEvent) => {
+  const handleCreateCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim() || !formCompany.trim()) return;
 
-    const newItem: TrackedItem = {
-      id: `tracked-${Date.now()}`,
-      title: formTitle,
-      company: formCompany,
-      location: formLocation || 'Remote',
-      salary: formSalary || 'Not specified',
-      portal: formPortal,
-      status: formStatus,
-      dateAdded: new Date().toLocaleDateString(),
-      notes: formNotes,
-      interviewDate: formInterviewDate ? formInterviewDate.replace('T', ' ') : undefined
-    };
+    try {
+      const payload = {
+        title: formTitle,
+        company: formCompany,
+        location: formLocation || 'Remote',
+        salary: formSalary || 'Not specified',
+        portal: formPortal,
+        status: formStatus,
+        notes: formNotes,
+        interviewDate: formInterviewDate ? formInterviewDate.replace('T', ' ') : undefined
+      };
 
-    const updated = [...items, newItem];
-    saveToStorage(updated);
-    
-    // Reset form
-    setFormTitle('');
-    setFormCompany('');
-    setFormLocation('');
-    setFormSalary('');
-    setFormNotes('');
-    setFormInterviewDate('');
-    setShowAddModal(false);
-    triggerToast('Added job to tracking board!');
+      const response = await api.post('/copilot/tracker', payload);
+      if (response.data.success) {
+        await fetchTrackerData();
+        
+        // Reset form
+        setFormTitle('');
+        setFormCompany('');
+        setFormLocation('');
+        setFormSalary('');
+        setFormNotes('');
+        setFormInterviewDate('');
+        setShowAddModal(false);
+        triggerToast('Added job to tracking board!');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to add application';
+      triggerToast(msg);
+    }
   };
 
   const columns: { key: 'applied' | 'shortlisted' | 'interview' | 'offer'; label: string; color: string }[] = [

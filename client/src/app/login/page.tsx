@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Key, Terminal, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -19,11 +19,21 @@ export default function LoginPage() {
     setError('');
     try {
       const { role } = await login(form.email, form.password);
-      if (role === 'admin') router.push('/admin/dashboard');
-      else router.push('/dashboard');
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message || 'Google Sign In failed.');
       setLoading(false);
     }
   };
@@ -175,6 +185,41 @@ export default function LoginPage() {
               {loading ? 'Authenticating...' : 'Sign In'} <ArrowRight size={14} />
             </button>
           </form>
+
+          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', color: 'var(--text-secondary)', fontSize: 12 }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            <span style={{ padding: '0 10px' }}>or</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          </div>
+
+          <button 
+            type="button" 
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            style={{ 
+              width: '100%', 
+              padding: '10px', 
+              fontSize: 13.5, 
+              height: 38, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: 10,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              borderRadius: 6,
+              cursor: 'pointer'
+            }}
+          >
+            <svg viewBox="0 0 24 24" style={{ width: 16, height: 16 }}>
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.69c-.29 1.5-.1.38-.85 1.58-.9 1.2-1.92 2-3.14 2.62v4.51h6.63c3.88-3.57 6.11-8.83 6.11-14.56z" />
+              <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-6.63-4.51c-.92.62-2.1.99-3.33.99-2.56 0-4.73-1.73-5.5-4.06H2.18v4.66C4.89 20.57 8.24 24 12 24z" />
+              <path fill="#FBBC05" d="M6.5 13.51c-.2-.62-.31-1.28-.31-1.96s.11-1.34.31-1.96V4.93H2.18C1.43 6.44 1 8.12 1 9.9c0 1.78.43 3.46 1.18 4.97l4.32-3.36z" />
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.22 0 12 0 8.24 0 4.89 3.43 2.18 8.07l4.32 3.36c.77-2.33 2.94-4.06 5.5-4.06z" />
+            </svg>
+            Sign in with Google
+          </button>
 
           <div style={{ textAlign: 'center', marginTop: 20, color: 'var(--text-secondary)', fontSize: 13.5 }}>
             Don't have an account?{' '}

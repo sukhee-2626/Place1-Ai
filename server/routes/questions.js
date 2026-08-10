@@ -41,6 +41,11 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const question = await Question.create({ ...req.body, createdBy: req.user._id });
     res.status(201).json({ success: true, question });
   } catch (err) {
+    // Extract Mongoose validation errors clearly
+    if (err.name === 'ValidationError') {
+      const fields = Object.keys(err.errors).map(f => `${f}: ${err.errors[f].message}`).join('; ');
+      return res.status(400).json({ success: false, message: `Validation failed — ${fields}` });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });

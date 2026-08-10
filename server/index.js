@@ -8,8 +8,25 @@ dotenv.config();
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:3000',
+];
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-side)
+    if (!origin) return callback(null, true);
+    // Allow any localhost or 192.168.x.x / 10.x.x.x local network origin
+    if (
+      allowedOrigins.includes(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+      /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01]))\d+\.\d+(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -35,6 +52,7 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/tests', require('./routes/tests'));
 app.use('/api/results', require('./routes/results'));
 app.use('/api/gamification', require('./routes/gamification'));
+app.use('/api/copilot', require('./routes/copilot'));
 
 // Health check
 app.get('/api/health', (req, res) => {

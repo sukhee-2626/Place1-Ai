@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import api from '@/lib/api';
 import { 
   Sparkles, 
   Search, 
@@ -36,6 +37,20 @@ function ResumeOptimizerContent() {
   const [matchedSkills, setMatchedSkills] = useState<string[]>([]);
   const [missingSkills, setMissingSkills] = useState<string[]>([]);
 
+  // Resumes history list
+  const [resumesHistory, setResumesHistory] = useState<any[]>([]);
+
+  const fetchResumesHistory = async () => {
+    try {
+      const response = await api.get('/copilot/resumes');
+      if (response.data.success) {
+        setResumesHistory(response.data.resumes);
+      }
+    } catch (err) {
+      console.error('Error fetching resume history:', err);
+    }
+  };
+
   // Pre-fill from query params if coming from job discovery
   useEffect(() => {
     const title = searchParams.get('title');
@@ -57,6 +72,8 @@ function ResumeOptimizerContent() {
       setMatchedSkills(['Java', 'SQL', 'HTML5', 'CSS3', 'Git']);
       setMissingSkills(['React', 'Node.js', 'Next.js', 'REST APIs']);
     }
+
+    fetchResumesHistory();
   }, [searchParams]);
 
   const triggerToast = (msg: string) => {
@@ -108,21 +125,45 @@ function ResumeOptimizerContent() {
     }, 1800);
   };
 
-  const handleOneClickOptimize = () => {
+  const handleOneClickOptimize = async () => {
     setPolishing(true);
-    setTimeout(() => {
-      // Tailor the resume by adding missing skills and optimization blocks
-      const skillsLine = `Skills:\nJava, Python, C++, HTML5, CSS3, SQL databases, Git version control, Windows, ${missingSkills.join(', ').toLowerCase()}.`;
-      const polishedText = `Suresh Kumar\nBangalore, Karnataka\nsuresh.kumar@email.com\n\nObjective:\nResult-oriented Front-End Software Developer seeking an opportunity to build scalable web applications at ${targetTitle ? 'Target Company' : 'your organization'}. Dedicated to creating clean component architectures, optimizing ATS scores, and implementing responsive modular views.\n\nEducation:\nB.E. in Computer Science - IIT Madras (GPA: 8.5/10)\n\n${skillsLine}\n\nKey Core Competencies:\n- Component Design (React.js, Next.js frameworks)\n- Server-side REST API development (Node.js/Express modules)\n- Version Control (Git repositories)\n- Relational Databases (SQL structured procedures)\n\nProfessional Experience & Projects:\n- Responsive Portfolio Web App: Integrated React state-management hooks and styled CSS frames to create a portfolio showcasing technical milestones.\n- Library Management Services: Built Java backend routes, integrated SQL database tables, and optimized query indices to improve search speeds.`;
+    // Tailor the resume by adding missing skills and optimization blocks
+    const skillsLine = `Skills:\nJava, Python, C++, HTML5, CSS3, SQL databases, Git version control, Windows, ${missingSkills.join(', ').toLowerCase()}.`;
+    const polishedText = `Suresh Kumar\nBangalore, Karnataka\nsuresh.kumar@email.com\n\nObjective:\nResult-oriented Front-End Software Developer seeking an opportunity to build scalable web applications at ${targetTitle ? 'Target Company' : 'your organization'}. Dedicated to creating clean component architectures, optimizing ATS scores, and implementing responsive modular views.\n\nEducation:\nB.E. in Computer Science - IIT Madras (GPA: 8.5/10)\n\n${skillsLine}\n\nKey Core Competencies:\n- Component Design (React.js, Next.js frameworks)\n- Server-side REST API development (Node.js/Express modules)\n- Version Control (Git repositories)\n- Relational Databases (SQL structured procedures)\n\nProfessional Experience & Projects:\n- Responsive Portfolio Web App: Integrated React state-management hooks and styled CSS frames to create a portfolio showcasing technical milestones.\n- Library Management Services: Built Java backend routes, integrated SQL database tables, and optimized query indices to improve search speeds.`;
 
+    const boostedScore = 96;
+    const finalMatched = [...matchedSkills, ...missingSkills];
+
+    try {
+      const payload = {
+        targetTitle,
+        targetDescription: targetDesc,
+        originalText: resumeText,
+        optimizedText: polishedText,
+        atsScore: boostedScore,
+        matchedSkills: finalMatched,
+        missingSkills: []
+      };
+
+      const response = await api.post('/copilot/resume', payload);
+      if (response.data.success) {
+        setOptimizedResume(polishedText);
+        setAtsScore(boostedScore);
+        setMatchedSkills(finalMatched);
+        setMissingSkills([]);
+        triggerToast('Resume customized and saved to database!');
+        await fetchResumesHistory();
+      }
+    } catch (err) {
+      console.error('Error saving optimized resume:', err);
+      triggerToast('Optimized resume locally, but failed to save to server.');
       setOptimizedResume(polishedText);
-      setAtsScore(96); // Boosted score
-      setMatchedSkills([...matchedSkills, ...missingSkills]);
+      setAtsScore(boostedScore);
+      setMatchedSkills(finalMatched);
       setMissingSkills([]);
-      
+    } finally {
       setPolishing(false);
-      triggerToast('Resume customized and optimized for ATS!');
-    }, 2200);
+    }
   };
 
   const handleCopy = () => {
@@ -217,6 +258,44 @@ function ResumeOptimizerContent() {
             <span>{analyzing ? 'Analyzing Resume Semantics...' : 'Scan & Run ATS Audit'}</span>
           </button>
         </div>
+
+        {/* History of Resumes */}
+        {resumesHistory.length > 0 && (
+          <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+            <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 12 }}>Optimization History</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
+              {resumesHistory.map((res: any) => (
+                <div key={res._id} className="glass" style={{ padding: 12, borderRadius: 8, border: '1px solid var(--border)', fontSize: 12.5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '70%' }}>{res.targetTitle || 'General Optimization'}</span>
+                    <span style={{ fontSize: 10, background: 'rgba(109,40,217,0.12)', color: 'var(--accent-violet-light)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                      {res.atsScore}% ATS
+                    </span>
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 11, marginTop: 4 }}>
+                    Optimized on {new Date(res.dateCreated).toLocaleDateString()}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setTargetTitle(res.targetTitle || '');
+                      setTargetDesc(res.targetDescription || '');
+                      setResumeText(res.originalText || '');
+                      setOptimizedResume(res.optimizedText || '');
+                      setAtsScore(res.atsScore || 96);
+                      setMatchedSkills(res.matchedSkills || []);
+                      setMissingSkills(res.missingSkills || []);
+                      setAnalyzed(true);
+                    }}
+                    className="btn-secondary" 
+                    style={{ padding: '4px 8px', fontSize: 11, marginTop: 8, width: '100%', justifyContent: 'center' }}
+                  >
+                    <span>Load Details</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Column: Results & Optimization */}

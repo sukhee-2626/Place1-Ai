@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import api from '@/lib/api';
 import { 
   Video, 
   ChevronRight, 
@@ -57,6 +58,24 @@ export default function AIInterviewPrepPage() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
+
+  // Performance history
+  const [reportsHistory, setReportsHistory] = useState<any[]>([]);
+
+  const fetchReportsHistory = async () => {
+    try {
+      const response = await api.get('/copilot/interviews');
+      if (response.data.success) {
+        setReportsHistory(response.data.reports);
+      }
+    } catch (err) {
+      console.error('Error fetching reports history:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReportsHistory();
+  }, []);
 
   const startCamera = async () => {
     setCameraLoading(true);
@@ -128,7 +147,7 @@ export default function AIInterviewPrepPage() {
     }, 1200);
   };
 
-  const calculateReport = (finalAnswers: string[]) => {
+  const calculateReport = async (finalAnswers: string[]) => {
     let matchesCount = 0;
     let wordCountSum = 0;
 
@@ -172,6 +191,22 @@ export default function AIInterviewPrepPage() {
     bullets.push('Maintain consistent response formats (e.g. STAR method for behavioral answers).');
     
     setFeedbackBullets(bullets);
+
+    try {
+      const payload = {
+        type: interviewType,
+        techScore: techScoreBase,
+        commScore: commScoreBase,
+        softScore: softScoreBase,
+        answers: finalAnswers,
+        feedback: bullets
+      };
+      await api.post('/copilot/interview', payload);
+      await fetchReportsHistory();
+    } catch (err) {
+      console.error('Error saving interview report:', err);
+    }
+
     stopCamera();
     setShowReport(true);
     setActiveSession(false);
@@ -198,37 +233,102 @@ export default function AIInterviewPrepPage() {
 
       {/* Select Stage */}
       {interviewType === 'select' && !showReport && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 10 }}>
-          
-          {/* HR Card */}
-          <div className="glass hover-lift" style={{ borderRadius: 14, padding: 24, border: '1px solid var(--border)', textAlign: 'center' }}>
-            <div style={{ width: 44, height: 44, background: 'rgba(109,40,217,0.08)', color: 'var(--accent-violet-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <MessageSquare size={20} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {/* HR Card */}
+            <div className="glass hover-lift" style={{ borderRadius: 14, padding: 24, border: '1px solid var(--border)', textAlign: 'center' }}>
+              <div style={{ width: 44, height: 44, background: 'rgba(109,40,217,0.08)', color: 'var(--accent-violet-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <MessageSquare size={20} />
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>HR Behavioral Mock</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
+                Prepare for standard behavioral interviews covering conflict resolution, self-introductions, leadership styles, and career roadmaps.
+              </p>
+              <button onClick={() => startInterview('hr')} className="btn-primary" style={{ width: '100%', fontSize: 12.5 }}>
+                <span>Start HR Mock</span>
+                <ChevronRight size={14} />
+              </button>
             </div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>HR Behavioral Mock</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
-              Prepare for standard behavioral interviews covering conflict resolution, self-introductions, leadership styles, and career roadmaps.
-            </p>
-            <button onClick={() => startInterview('hr')} className="btn-primary" style={{ width: '100%', fontSize: 12.5 }}>
-              <span>Start HR Mock</span>
-              <ChevronRight size={14} />
-            </button>
+
+            {/* Tech Card */}
+            <div className="glass hover-lift" style={{ borderRadius: 14, padding: 24, border: '1px solid var(--border)', textAlign: 'center' }}>
+              <div style={{ width: 44, height: 44, background: 'rgba(6,182,212,0.08)', color: 'var(--accent-cyan-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Sparkles size={20} />
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Technical Simulation</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
+                Practice core technical questions covering scope closures, strict comparison logic, database indexing, and general system design patterns.
+              </p>
+              <button onClick={() => startInterview('tech')} className="btn-primary" style={{ width: '100%', fontSize: 12.5 }}>
+                <span>Start Technical Mock</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
 
-          {/* Tech Card */}
-          <div className="glass hover-lift" style={{ borderRadius: 14, padding: 24, border: '1px solid var(--border)', textAlign: 'center' }}>
-            <div style={{ width: 44, height: 44, background: 'rgba(6,182,212,0.08)', color: 'var(--accent-cyan-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Sparkles size={20} />
+          {/* Performance History */}
+          {reportsHistory.length > 0 && (
+            <div className="glass animate-fadeInUp" style={{ borderRadius: 14, padding: 24, border: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Award size={18} style={{ color: 'var(--accent-violet-light)' }} />
+                <span>Your Performance Scorecards</span>
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+                {reportsHistory.map((report: any) => (
+                  <div key={report._id} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <span style={{ fontSize: 10, background: report.type === 'tech' ? 'rgba(6,182,212,0.12)' : 'rgba(109,40,217,0.12)', color: report.type === 'tech' ? 'var(--accent-cyan-light)' : 'var(--accent-violet-light)', padding: '2px 8px', borderRadius: 4, fontWeight: 700, textTransform: 'uppercase' }}>
+                          {report.type === 'tech' ? 'Technical' : 'Behavioral'}
+                        </span>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: 11, marginTop: 6 }}>
+                          Taken on {new Date(report.dateTaken).toLocaleDateString()}
+                        </div>
+                      </div>
+                      
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>
+                          {Math.round((report.techScore + report.commScore + report.softScore) / 3)}/10
+                        </div>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 700 }}>AVG SCORE</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12, fontSize: 11, textAlign: 'center' }}>
+                      <div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 9 }}>TECH</div>
+                        <div style={{ fontWeight: 700, color: '#fff', marginTop: 2 }}>{report.techScore}/10</div>
+                      </div>
+                      <div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 9 }}>COMM</div>
+                        <div style={{ fontWeight: 700, color: '#fff', marginTop: 2 }}>{report.commScore}/10</div>
+                      </div>
+                      <div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 9 }}>SOFT</div>
+                        <div style={{ fontWeight: 700, color: '#fff', marginTop: 2 }}>{report.softScore}/10</div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setInterviewType(report.type);
+                        setTechScore(report.techScore);
+                        setCommScore(report.commScore);
+                        setSoftScore(report.softScore);
+                        setFeedbackBullets(report.feedback || []);
+                        setAnswers(report.answers || ['', '', '']);
+                        setShowReport(true);
+                      }}
+                      className="btn-secondary"
+                      style={{ width: '100%', fontSize: 11, padding: '6px', marginTop: 12, justifyContent: 'center' }}
+                    >
+                      View Report Card
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Technical Simulation</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginBottom: 20 }}>
-              Practice core technical questions covering scope closures, strict comparison logic, database indexing, and general system design patterns.
-            </p>
-            <button onClick={() => startInterview('tech')} className="btn-primary" style={{ width: '100%', fontSize: 12.5 }}>
-              <span>Start Technical Mock</span>
-              <ChevronRight size={14} />
-            </button>
-          </div>
+          )}
         </div>
       )}
 

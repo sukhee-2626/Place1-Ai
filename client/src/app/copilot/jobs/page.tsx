@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 import { 
   Search, 
   MapPin, 
@@ -134,10 +135,27 @@ export default function AIJobDiscoveryPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState('');
 
-  // Load saved jobs & tracker from localStorage to check existing states
+  // Load saved jobs & tracker from database / localStorage
   useEffect(() => {
     const saved = localStorage.getItem('neopat_saved_jobs');
     if (saved) setSavedJobs(JSON.parse(saved));
+
+    const fetchJobs = async () => {
+      try {
+        const response = await api.get('/copilot/jobs');
+        if (response.data.success && response.data.jobs.length > 0) {
+          const normalized = response.data.jobs.map((j: any) => ({
+            ...j,
+            id: j._id || j.id
+          }));
+          setJobs(normalized);
+          setExpandedJobId(normalized[0].id);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+      }
+    };
+    fetchJobs();
   }, []);
 
   const triggerToast = (msg: string) => {
@@ -181,38 +199,29 @@ export default function AIJobDiscoveryPage() {
     localStorage.setItem('neopat_saved_jobs', JSON.stringify(updated));
   };
 
-  // Add job directly to Smart Kanban Tracker
-  const handleAddToTracker = (job: Job) => {
-    const trackerData = localStorage.getItem('neopat_tracker_jobs');
-    let currentTracker = [];
-    if (trackerData) {
-      currentTracker = JSON.parse(trackerData);
-    }
-    
-    // Check if already in tracker
-    const exists = currentTracker.some((t: any) => t.jobId === job.id || (t.title === job.title && t.company === job.company));
-    if (exists) {
-      triggerToast('Already in your Application Tracker!');
-      return;
-    }
+  // Add job directly to Smart Kanban Tracker in DB
+  const handleAddToTracker = async (job: Job) => {
+    try {
+      const payload = {
+        jobId: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        salary: job.salary,
+        portal: job.portal,
+        status: 'applied',
+        notes: 'Added from AI Job Discovery Console.',
+        interviewDate: ''
+      };
 
-    const newTrackedItem = {
-      id: `tracked-${Date.now()}`,
-      jobId: job.id,
-      title: job.title,
-      company: job.company,
-      location: job.location,
-      salary: job.salary,
-      portal: job.portal,
-      status: 'applied', // Initial Kanban Column
-      dateAdded: new Date().toLocaleDateString(),
-      notes: 'Added from AI Job Discovery Console.',
-      interviewDate: ''
-    };
-
-    const updatedTracker = [...currentTracker, newTrackedItem];
-    localStorage.setItem('neopat_tracker_jobs', JSON.stringify(updatedTracker));
-    triggerToast('Added to Smart Application Tracker!');
+      const response = await api.post('/copilot/tracker', payload);
+      if (response.data.success) {
+        triggerToast('Added to Smart Application Tracker!');
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to add to tracker';
+      triggerToast(msg);
+    }
   };
 
   // Send parameters to Resume Optimizer

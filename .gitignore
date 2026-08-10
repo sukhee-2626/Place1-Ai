@@ -22,3 +22,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Unwanted Folders
+unibite/
+unibite-vanilla/
+client/.agents/
+client/skills-lock.json
+server/scripts/*.json
+server/scripts/*.py
